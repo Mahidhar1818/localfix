@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>localfix — Technician</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="api-client.js" defer></script>
+<style>
+:root{
+  --ink:#0c1b33;--ink-2:#132a4a;--fog:#e8eef8;--paper:#f4f7fc;
+  --signal:#3b82f6;--signal-2:#60a5fa;--navy:#1e3a8a;--muted:#5b6b82;--line:#d5deec;
+  --white:#fff;--warn:#b94a39;--ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--ink);font-family:"Source Sans 3",sans-serif;
+  background:
+    radial-gradient(ellipse 55% 40% at 100% 0%,rgba(59,130,246,.12),transparent 55%),
+    linear-gradient(180deg,var(--paper),var(--fog));
+}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.top{
+  position:sticky;top:0;z-index:30;height:68px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 4vw;background:rgba(244,247,252,.9);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.logo{display:flex;align-items:center;gap:8px;font-family:Outfit,sans-serif;font-weight:800;text-decoration:none;color:inherit}
+.logoMark{width:32px;height:32px;border-radius:10px;background:linear-gradient(145deg,#1e3a8a,#3b82f6);color:#fff;display:grid;place-items:center}
+.logoMark svg{width:16px;height:16px}
+.nav{display:flex;gap:1.2rem;font-size:.84rem;font-weight:600;color:var(--muted)}
+.nav button{background:none;border:0;color:inherit;padding:0}
+.nav button:hover{color:var(--navy)}
+.pill{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-weight:700;font-size:.8rem}
+.wrap{width:min(1100px,100%);margin:0 auto;padding:1.4rem 4vw 4rem}
+
+.bio{
+  background:linear-gradient(135deg,#0c1b33,#1e3a8a 70%,#2563eb);
+  color:#fff;border-radius:22px;padding:1.5rem;display:grid;grid-template-columns:1fr auto;gap:1.2rem;align-items:center;
+  position:relative;overflow:hidden;margin-bottom:1.2rem;
+}
+.bio::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-60px;top:-70px;background:rgba(147,197,253,.15)}
+.bioRow{display:flex;gap:14px;align-items:center;position:relative;z-index:1}
+.av{width:64px;height:64px;border-radius:20px;background:#93c5fd;color:var(--ink);display:grid;place-items:center;font-family:Outfit,sans-serif;font-weight:800;font-size:1.2rem}
+.bio h1{font-family:Outfit,sans-serif;font-size:1.45rem;letter-spacing:-.03em;margin:0 0 4px}
+.meta{font-size:.8rem;color:rgba(226,232,240,.78);line-height:1.45}
+.skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;position:relative;z-index:1}
+.skill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 9px;font-size:.72rem;font-weight:700}
+.level{margin-top:12px;position:relative;z-index:1}
+.levelBar{height:8px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;margin-top:6px}
+.levelBar i{display:block;height:100%;width:78%;background:linear-gradient(90deg,var(--signal),var(--signal-2))}
+.earn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:1rem 1.15rem;position:relative;z-index:1;min-width:160px}
+.earn b{display:block;font-family:Outfit,sans-serif;font-size:1.6rem;color:#93c5fd}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.4rem}
+.stat{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:16px;padding:1rem}
+.stat b{display:block;font-family:Outfit,sans-serif;font-size:1.35rem;letter-spacing:-.03em}
+.stat span{font-size:.75rem;color:var(--muted)}
+
+.head{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin:1.5rem 0 .85rem}
+.head h2{font-family:Outfit,sans-serif;font-size:1.2rem;letter-spacing:-.03em;margin:0}
+.head p{margin:.25rem 0 0;color:var(--muted);font-size:.84rem}
+.panel{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:18px;padding:1.1rem}
+.job{
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:14px 0;border-bottom:1px solid var(--line);
+}
+.job:last-child{border-bottom:0;padding-bottom:0}
+.job h3{margin:0 0 4px;font-size:.95rem}
+.tag{display:inline-block;background:rgba(59,130,246,.12);color:var(--navy);border-radius:999px;padding:3px 8px;font-size:.65rem;font-weight:800}
+.tag.warn{background:#fff3df;color:#a96116}
+.btn{
+  border:0;border-radius:11px;padding:10px 14px;font-weight:700;font-size:.84rem;
+  background:var(--signal);color:#fff;transition:transform .2s var(--ease);
+}
+.btn:hover{transform:translateY(-1px)}
+.btnOutline{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btnDark{background:var(--navy);color:#fff}
+.btnRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.label{display:block;font-size:.76rem;font-weight:700;margin:0 0 .35rem}
+.input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;outline:0;background:var(--paper)}
+.full{width:100%;margin-top:.7rem}
+
+.hist{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.hist:last-child{border:0}
+.hIcon{width:42px;height:42px;border-radius:12px;background:#dbeafe;display:grid;place-items:center;color:var(--navy);font-weight:800}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;min-height:108px}
+.tile:hover{border-color:var(--signal)}
+.tile b{display:block;color:var(--navy);font-size:1.05rem;margin-bottom:4px}
+.tileIcon{width:40px;height:40px;border-radius:12px;background:#dbeafe;display:grid;place-items:center;font-size:1.35rem;line-height:1}
+.tile span{font-size:.76rem;color:var(--muted)}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(8,16,32,.58);backdrop-filter:blur(7px);z-index:80;align-items:center;justify-content:center;padding:1rem}
+.modal.show{display:flex}
+.box{width:min(500px,100%);background:#fff;border-radius:18px;padding:1.2rem;max-height:90vh;overflow:auto}
+.mHead{display:flex;justify-content:space-between;align-items:center}
+.mHead h2{font-family:Outfit,sans-serif;font-size:1.1rem;margin:0}
+.close{width:32px;height:32px;border:0;border-radius:50%;background:var(--fog)}
+.settingsRow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.toast{position:fixed;bottom:1.1rem;left:50%;transform:translate(-50%,12px);opacity:0;background:var(--ink);color:#fff;padding:10px 14px;border-radius:999px;font-size:.8rem;z-index:100;transition:.25s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:900px){
+  .nav{display:none}.bio,.grid{grid-template-columns:1fr}.stats,.tiles{grid-template-columns:1fr 1fr}.earn{min-width:0}
+}
+@media(max-width:560px){.formGrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="index.html"><div class="logoMark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>localfix</a>
+  <nav class="nav">
+    <button type="button" onclick="go('jobs')">Incoming jobs</button>
+    <button type="button" onclick="go('diagnose')">Diagnose & quote</button>
+    <button type="button" onclick="go('history')">Job history</button>
+    <button type="button" onclick="go('earnings')">Earnings</button>
+  </nav>
+  <div style="display:flex;gap:8px">
+    <button class="pill" type="button" onclick="openM('language')">Translate</button>
+    <button class="pill" type="button" onclick="openM('settings')">Settings</button>
+    <button class="pill" type="button" onclick="location.href='index.html'">Home</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="bio">
+    <div>
+      <div class="bioRow">
+        <div class="av">RK</div>
+        <div>
+          <h1>Ravi Kumar</h1>
+          <div class="meta">LF-TECH-2048 · Verified technician · Sattenapalli</div>
+          <div class="meta">AC & Refrigeration · 8 years · ★ 4.9 (214 jobs)</div>
+        </div>
+      </div>
+      <div class="skills">
+        <span class="skill">AC repair</span>
+        <span class="skill">Gas refill</span>
+        <span class="skill">Split install</span>
+        <span class="skill">Refrigerator</span>
+      </div>
+      <div class="level">
+        <div class="meta">Pro level · 78% to Elite</div>
+        <div class="levelBar"><i></i></div>
+      </div>
+    </div>
+    <div class="earn">
+      <span class="meta">This week</span>
+      <b>₹18,400</b>
+      <span class="meta">12 completed · 2 active</span>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="stat"><b>2</b><span>Active jobs</span></div>
+    <div class="stat"><b>5</b><span>New requests nearby</span></div>
+    <div class="stat"><b>96%</b><span>On-time rate</span></div>
+    <div class="stat"><b>₹42k</b><span>Month to date</span></div>
+  </div>
+
+  <div class="tiles">
+     <button class="tile" type="button" onclick="go('jobs')"><b class="tileIcon" aria-hidden="true">📋</b><span>Incoming jobs</span></button>
+     <button class="tile" type="button" onclick="openM('diagnoseM')"><b class="tileIcon" aria-hidden="true">🔧</b><span>New diagnosis</span></button>
+     <button class="tile" type="button" onclick="go('earnings')"><b class="tileIcon" aria-hidden="true">💰</b><span>Earnings</span></button>
+     <button class="tile" type="button" onclick="openM('profile')"><b class="tileIcon" aria-hidden="true">👤</b><span>My profile</span></button>
+  </div>
+
+  <div class="head" id="jobs"><div><h2>Incoming jobs</h2><p>Requests matched to your skills, distance and availability.</p></div><button class="btnOutline" type="button" onclick="toast('Job feed refreshed')">Refresh</button></div>
+  <section class="panel">
+    <div class="job">
+      <div>
+        <h3>AC not cooling · Flat 204, Lakeview</h3>
+        <div class="meta">1.2 km · Yuktha A. · Requested 12 min ago</div>
+        <div class="btnRow">
+          <span class="tag">HIGH MATCH 94%</span>
+          <span class="tag warn">NEEDS RESPONSE</span>
+        </div>
+      </div>
+      <div class="btnRow">
+        <button class="btn" type="button" onclick="acceptJob('AC not cooling')">Accept</button>
+        <button class="btnOutline" type="button" onclick="toast('Job declined')">Decline</button>
+      </div>
+    </div>
+    <div class="job">
+      <div>
+        <h3>Refrigerator warm · Near main road</h3>
+        <div class="meta">2.4 km · Community hostel · Requested 28 min ago</div>
+        <div class="btnRow"><span class="tag">MATCH 88%</span></div>
+      </div>
+      <div class="btnRow">
+        <button class="btn" type="button" onclick="acceptJob('Refrigerator warm')">Accept</button>
+        <button class="btnOutline" type="button" onclick="toast('Job declined')">Decline</button>
+      </div>
+    </div>
+    <div class="job">
+      <div>
+        <h3>Split AC install quote · Block C</h3>
+        <div class="meta">3.1 km · New booking · Tomorrow preferred</div>
+        <div class="btnRow"><span class="tag">INSTALL</span></div>
+      </div>
+      <div class="btnRow">
+        <button class="btnDark" type="button" onclick="openM('diagnoseM')">Open & quote</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="head" id="diagnose"><div><h2>Diagnose & quote</h2><p>Separate parts and labour so customers can approve with clarity.</p></div></div>
+  <div class="grid">
+    <section class="panel">
+      <b>Active: Job #LF2048</b>
+      <p class="meta" style="color:var(--muted);margin:.35rem 0 1rem">Customer: Yuktha Aasritha · AC cooling · On site</p>
+      <div class="formGrid">
+        <div><label class="label">Fault found</label><input class="input" id="fault" value="Low gas + dirty filter"></div>
+        <div><label class="label">Service type</label><select class="input"><option>Repair</option><option>Install</option><option>Inspection</option></select></div>
+        <div><label class="label">Parts (₹)</label><input class="input" id="parts" type="number" value="350"></div>
+        <div><label class="label">Labour (₹)</label><input class="input" id="labour" type="number" value="450"></div>
+      </div>
+      <label class="label" style="margin-top:10px">Notes for customer</label>
+      <textarea class="input" rows="3" id="notes">Gas top-up required. Filter cleaned. 30-day FixSure warranty included.</textarea>
+      <button class="btn full" type="button" onclick="sendQuote()">Send quote to customer</button>
+    </section>
+    <section class="panel">
+      <b>Quote preview</b>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)"><span class="meta" style="color:var(--muted)">Visit charge</span><b>₹299</b></div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)"><span class="meta" style="color:var(--muted)">Parts</span><b id="pPrev">₹350</b></div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)"><span class="meta" style="color:var(--muted)">Labour</span><b id="lPrev">₹450</b></div>
+      <div style="display:flex;justify-content:space-between;padding:14px 0;align-items:end">
+        <span class="meta" style="color:var(--muted)">Total</span>
+        <strong id="tPrev" style="font-family:Outfit,sans-serif;font-size:1.6rem">₹1,099</strong>
+      </div>
+      <button class="btnOutline full" type="button" onclick="openM('proof')">Upload before / after proof</button>
+      <button class="btnDark full" type="button" onclick="toast('Job marked complete — payment unlocked')">Mark repair complete</button>
+    </section>
+  </div>
+
+  <div class="head" id="history"><div><h2>Job history</h2><p>Completed work, ratings and warranty windows.</p></div></div>
+  <section class="panel">
+    <div class="hist"><div class="hIcon">❄️</div><div><b style="font-size:.92rem">AC gas refill · Lakeview</b><div class="meta" style="color:var(--muted)">16 Sep 2026 · ★ 5 · Warranty 30 days</div></div><b>₹1,800</b></div>
+    <div class="hist"><div class="hIcon">🧰</div><div><b style="font-size:.92rem">Split install · Hostel Block A</b><div class="meta" style="color:var(--muted)">12 Sep 2026 · ★ 4.8 · Parts supplied</div></div><b>₹4,200</b></div>
+    <div class="hist"><div class="hIcon">🧊</div><div><b style="font-size:.92rem">Fridge thermostat · Main road</b><div class="meta" style="color:var(--muted)">05 Sep 2026 · ★ 5 · Revisit free</div></div><b>₹950</b></div>
+  </section>
+
+  <div class="head" id="earnings"><div><h2>Earnings</h2><p>Payouts settle after customer approval and proof upload.</p></div><button class="btnOutline" type="button" onclick="openM('payout')">Request payout</button></div>
+  <section class="panel">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div><div class="meta" style="color:var(--muted)">Available</div><b style="font-family:Outfit,sans-serif;font-size:1.4rem">₹12,650</b></div>
+      <div><div class="meta" style="color:var(--muted)">Pending clearance</div><b style="font-family:Outfit,sans-serif;font-size:1.4rem">₹3,100</b></div>
+      <div><div class="meta" style="color:var(--muted)">Last payout</div><b style="font-family:Outfit,sans-serif;font-size:1.4rem">₹9,800</b></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="language"><div class="box">
+  <div class="mHead"><h2>Translate LocalFix</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <p class="meta" style="color:var(--muted)">Choose a language to translate the full technician page, including jobs, quotes and earnings.</p>
+  <div id="google_translate_element" style="margin-top:1rem"></div>
+</div></div>
+
+<div class="modal" id="locationAccess"><div class="box">
+  <div class="mHead"><h2>Use your location</h2></div>
+  <p class="meta" style="color:var(--muted)">Allow LocalFix to use your location to find nearby jobs and provide accurate navigation.</p>
+  <button class="btn full" type="button" onclick="allowLocationAccess()">Allow location access</button>
+  <button class="btnOutline full" type="button" onclick="closeM()">Not now</button>
+</div></div>
+
+<div class="modal" id="diagnoseM"><div class="box">
+  <div class="mHead"><h2>New diagnosis</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <p class="meta" style="color:var(--muted)">Log fault findings before sending a customer quote.</p>
+  <label class="label">Job / customer</label><input class="input" placeholder="Select or type job reference">
+  <label class="label">Fault found</label><textarea class="input" rows="3" placeholder="What did you find on inspection?"></textarea>
+  <div class="formGrid" style="margin-top:10px">
+    <div><label class="label">Parts (₹)</label><input class="input" type="number" placeholder="0"></div>
+    <div><label class="label">Labour (₹)</label><input class="input" type="number" placeholder="0"></div>
+  </div>
+  <button class="btn full" type="button" onclick="toast('Diagnosis saved');closeM()">Save diagnosis</button>
+</div></div>
+
+<div class="modal" id="proof"><div class="box">
+  <div class="mHead"><h2>Repair proof</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <label class="label">Before photo</label><input class="input" type="file" accept="image/*">
+  <label class="label">After photo</label><input class="input" type="file" accept="image/*">
+  <label class="label">Notes</label><textarea class="input" rows="3" placeholder="Optional notes for warranty record"></textarea>
+  <button class="btn full" type="button" onclick="toast('Proof uploaded');closeM()">Upload proof</button>
+</div></div>
+
+<div class="modal" id="payout"><div class="box">
+  <div class="mHead"><h2>Request payout</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <p class="meta" style="color:var(--muted)">Available balance: ₹12,650</p>
+  <label class="label">Amount</label><input class="input" type="number" value="12650">
+  <label class="label">Bank / UPI</label><input class="input" value="ravi@upi">
+  <button class="btn full" type="button" onclick="toast('Payout requested (demo)');closeM()">Submit payout</button>
+</div></div>
+
+<div class="modal" id="profile"><div class="box">
+  <div class="mHead"><h2>Technician profile</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <label class="label">Display name</label><input class="input" value="Ravi Kumar">
+  <label class="label">LocalFix ID</label><input class="input" value="LF-TECH-2048" readonly>
+  <label class="label">Skills</label><input class="input" value="AC repair, Gas refill, Split install">
+  <label class="label">Service radius (km)</label><input class="input" type="number" value="8">
+  <button class="btn full" type="button" onclick="toast('Profile updated');closeM()">Save profile</button>
+</div></div>
+
+<div class="modal" id="settings"><div class="box">
+  <div class="mHead"><h2>Technician settings</h2><button class="close" type="button" onclick="closeM()">×</button></div>
+  <div class="settingsRow"><span><b>Availability</b><br><small class="meta" style="color:var(--muted)">Receive new job matches</small></span><span class="tag">ONLINE</span></div>
+  <div class="settingsRow"><span><b>Masked calling</b><br><small class="meta" style="color:var(--muted)">Protect personal number</small></span><span class="tag">ON</span></div>
+  <div class="settingsRow"><span><b>SOS support</b><br><small class="meta" style="color:var(--muted)">Emergency assistance</small></span><button class="btnOutline" type="button" onclick="toast('SOS contacts ready')">Manage</button></div>
+  <button class="btnOutline full" style="border-color:#ffd2c7;background:#fff4ee;color:var(--warn)" type="button" onclick="location.href='index.html'">Log out</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<script>
+function openM(id){document.querySelectorAll('.modal').forEach(x=>x.classList.remove('show'));document.getElementById(id).classList.add('show')}
+function closeM(){document.querySelectorAll('.modal').forEach(x=>x.classList.remove('show'))}
+document.querySelectorAll('.modal').forEach(x=>x.addEventListener('click',e=>{if(e.target===x)closeM()}))
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(window.tt);window.tt=setTimeout(()=>t.classList.remove('on'),2500)}
+function go(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'})}
+function acceptJob(n){toast('Accepted: '+n);openM('diagnoseM')}
+function showLocationPrompt(){if(!localStorage.getItem('lf_technician_location'))openM('locationAccess')}
+function allowLocationAccess(){
+  if(!navigator.geolocation){toast('Location access is not supported by this browser');return}
+  navigator.geolocation.getCurrentPosition(
+    position=>{
+      const location={lat:position.coords.latitude,lng:position.coords.longitude};
+      localStorage.setItem('lf_technician_location',JSON.stringify(location));
+      localStorage.setItem('lf_technician_address','Current location');
+      closeM();toast('Location access enabled');
+    },
+    ()=>{closeM();toast('Location access was not granted. You can enable it in browser settings.')},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:300000}
+  );
+}
+function syncQuote(){
+  const p=+document.getElementById('parts').value||0;
+  const l=+document.getElementById('labour').value||0;
+  document.getElementById('pPrev').textContent='₹'+p;
+  document.getElementById('lPrev').textContent='₹'+l;
+  document.getElementById('tPrev').textContent='₹'+(299+p+l).toLocaleString('en-IN');
+}
+document.getElementById('parts').addEventListener('input',syncQuote);
+document.getElementById('labour').addEventListener('input',syncQuote);
+function sendQuote(){syncQuote();toast('Quote sent to customer — awaiting approval')}
+document.addEventListener('DOMContentLoaded',showLocationPrompt);
+</script>
+<script>
+function googleTranslateElementInit(){
+  new google.translate.TranslateElement({
+    pageLanguage:'en',
+    includedLanguages:'hi,te,ta,kn,ml,mr,bn,gu,pa',
+    autoDisplay:false
+  },'google_translate_element');
+}
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>

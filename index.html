@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>localfix — Appliance services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="i18n.js" defer></script>
+<script src="api-client.js" defer></script>
+<style>
+:root{
+  --ink:#0c1b33;--ink-2:#132a4a;--fog:#e8eef8;--paper:#f4f7fc;
+  --signal:#3b82f6;--signal-2:#60a5fa;--navy:#1e3a8a;--muted:#5b6b82;
+  --line:#d5deec;--white:#fff;--warn:#b94a39;--ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{
+  margin:0;min-height:100%;color:var(--ink);font-family:"Source Sans 3",sans-serif;
+  background:
+    radial-gradient(ellipse 65% 45% at 100% 0%,rgba(59,130,246,.14),transparent 55%),
+    radial-gradient(ellipse 45% 40% at 0% 70%,rgba(30,58,138,.08),transparent 50%),
+    linear-gradient(180deg,var(--paper),var(--fog));
+}
+button,input,select{font:inherit}button{cursor:pointer}
+.top{position:fixed;inset:0 0 auto;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:16px 5vw;pointer-events:none}
+.top>*{pointer-events:auto}
+.logo{display:flex;align-items:center;gap:10px;font-family:Outfit,sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.03em;color:#fff}
+.logoMark{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#1e3a8a,#3b82f6);color:#fff;display:grid;place-items:center}
+.logoMark svg{width:20px;height:20px}
+.nav{display:flex;gap:1.4rem;font-size:.84rem;font-weight:600;color:rgba(255,255,255,.75)}
+.nav button{background:none;border:0;color:inherit;padding:0}
+.nav button:hover{color:#fff}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.ghost{border:1px solid rgba(255,255,255,.3);background:rgba(12,27,51,.28);color:#fff;border-radius:10px;padding:9px 13px;font-weight:700;font-size:.8rem;backdrop-filter:blur(10px)}
+.ghost.solid{background:var(--signal);border-color:transparent;color:#fff}
+.ghost.solid:hover{filter:brightness(1.08)}
+
+.hero{min-height:100svh;position:relative;overflow:hidden;display:grid;align-items:end;color:#fff;
+  background:
+    linear-gradient(115deg,rgba(8,18,36,.92) 0%,rgba(12,27,51,.62) 50%,rgba(30,58,138,.45) 100%),
+    radial-gradient(circle at 78% 40%,rgba(96,165,250,.25),transparent 42%),
+    linear-gradient(160deg,#0c1b33,#1e3a8a 55%,#2563eb)}
+.heroGrid{position:absolute;inset:0;opacity:.3;background-image:linear-gradient(rgba(147,197,253,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(147,197,253,.08) 1px,transparent 1px);background-size:56px 56px;animation:gridDrift 28s linear infinite;
+  mask-image:radial-gradient(ellipse 70% 70% at 70% 50%,#000 20%,transparent 75%)}
+@keyframes gridDrift{to{background-position:56px 56px}}
+.heroContent{position:relative;z-index:2;width:min(1240px,100%);margin:0 auto;padding:7rem 5vw 4.2rem;display:grid;grid-template-columns:1.05fr .95fr;gap:2rem;align-items:end}
+.brandHero{font-family:Outfit,sans-serif;font-weight:800;font-size:clamp(3.2rem,10vw,6.8rem);line-height:.88;letter-spacing:-.05em;margin:0 0 1rem;animation:rise .9s var(--ease) both}
+.brandHero span{color:#93c5fd}
+.hero h1{font-family:Outfit,sans-serif;font-weight:700;font-size:clamp(1.3rem,2.5vw,1.9rem);letter-spacing:-.03em;line-height:1.2;margin:0 0 .8rem;max-width:20ch;animation:rise .9s .08s var(--ease) both}
+.heroLead{margin:0;max-width:40ch;color:rgba(226,232,240,.82);font-size:1.02rem;line-height:1.55;animation:rise .9s .14s var(--ease) both}
+.ctaRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:1.5rem;animation:rise .9s .2s var(--ease) both}
+.btn{border:0;border-radius:12px;padding:13px 18px;font-weight:700;font-size:.92rem;transition:transform .25s var(--ease)}
+.btn:hover{transform:translateY(-2px)}
+.btnPrimary{background:var(--signal);color:#fff}
+.btnGhost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+.heroVisual{position:relative;justify-self:end;width:min(380px,100%);aspect-ratio:1;animation:rise 1s .18s var(--ease) both}
+.orbit{width:100%;height:100%;border:1px dashed rgba(147,197,253,.4);border-radius:50%;position:relative;animation:spin 36s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core{position:absolute;inset:26%;border-radius:50%;background:linear-gradient(145deg,#2563eb,#60a5fa);color:#fff;display:grid;place-items:center;text-align:center;font-family:Outfit,sans-serif;font-weight:800;font-size:clamp(.95rem,2.2vw,1.2rem);letter-spacing:-.03em;line-height:1.1;animation:spin 36s linear infinite reverse;box-shadow:0 0 0 12px rgba(59,130,246,.18)}
+.core small{display:block;font-family:"Source Sans 3",sans-serif;font-size:.55rem;letter-spacing:.12em;font-weight:700;margin-top:4px;opacity:.85}
+.tool{position:absolute;width:64px;height:64px;border-radius:18px;background:#fff;color:var(--navy);display:grid;place-items:center;box-shadow:0 12px 28px rgba(12,27,51,.25);animation:spin 36s linear infinite reverse}
+.tool svg{width:28px;height:28px}
+.t1{top:-8px;left:calc(50% - 32px)}.t2{right:-8px;top:calc(50% - 32px)}.t3{bottom:-8px;left:calc(50% - 32px)}.t4{left:-8px;top:calc(50% - 32px)}
+.scrollCue{position:absolute;bottom:1.3rem;left:50%;transform:translateX(-50%);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45);font-weight:700;z-index:2}
+
+.wrap{width:min(1100px,100%);margin:0 auto;padding:4.2rem 5vw}
+.sectionHead{max-width:36rem;margin:0 0 2rem}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--signal)}
+.sectionHead h2{font-family:Outfit,sans-serif;font-weight:700;font-size:clamp(1.55rem,3vw,2.15rem);letter-spacing:-.035em;margin:.4rem 0 .5rem;line-height:1.12}
+.sectionHead p{margin:0;color:var(--muted);font-size:.98rem;line-height:1.55}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--line)}
+.flowStep{padding:1.35rem 1rem 1.35rem 0;border-right:1px solid var(--line);transition:background .3s}
+.flowStep:last-child{border-right:0}
+.flowStep:hover{background:rgba(59,130,246,.08)}
+.flowNum{font-family:Outfit,sans-serif;font-weight:800;font-size:1.45rem;color:var(--navy);margin-bottom:.4rem}
+.flowStep b{display:block;font-size:.95rem;margin-bottom:.25rem}
+.flowStep p{margin:0;font-size:.82rem;color:var(--muted);line-height:1.45}
+
+.featList{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.feat{background:rgba(255,255,255,.78);padding:1.45rem 1.3rem}
+.feat:hover{background:#fff}
+.featIcon{width:42px;height:42px;border-radius:12px;background:var(--ink);color:#93c5fd;display:grid;place-items:center;margin-bottom:.85rem}
+.featIcon svg{width:22px;height:22px}
+.feat h3{font-family:Outfit,sans-serif;font-size:1.05rem;margin:0 0 .3rem}
+.feat p{margin:0;font-size:.88rem;color:var(--muted);line-height:1.5}
+
+.trust{display:grid;grid-template-columns:1fr 1.2fr;gap:2.4rem}
+.trustPoints{display:grid;gap:1rem}
+.trustPoint{display:grid;grid-template-columns:auto 1fr;gap:.85rem}
+.trustMark{width:28px;height:28px;border-radius:8px;background:var(--signal);color:#fff;display:grid;place-items:center;font-weight:800;font-size:.8rem;margin-top:2px}
+.trustPoint h3{margin:0 0 .15rem;font-size:.96rem}
+.trustPoint p{margin:0;font-size:.86rem;color:var(--muted);line-height:1.45}
+
+.band{margin:0 5vw 3.5rem;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#0c1b33,#1e3a8a 70%,#2563eb);color:#fff;display:grid;grid-template-columns:1.3fr auto;gap:1.4rem;align-items:center;padding:1.9rem 2rem;position:relative}
+.band::before{content:"";position:absolute;inset:auto -8% -40% auto;width:260px;height:260px;background:radial-gradient(circle,rgba(147,197,253,.25),transparent 65%);pointer-events:none}
+.band .eyebrow{color:#93c5fd}
+.band h2{font-family:Outfit,sans-serif;font-size:clamp(1.35rem,2.4vw,1.75rem);margin:.35rem 0 .45rem}
+.band p{margin:0;color:rgba(226,232,240,.75);font-size:.92rem;max-width:42ch;line-height:1.5}
+.bandBtns{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:1}
+
+.footer{border-top:1px solid var(--line);padding:1.3rem 5vw;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+
+.modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,16,32,.62);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem}
+.modal.show{display:flex}
+.box{width:min(540px,100%);background:#fff;border-radius:20px;padding:1.4rem;box-shadow:0 24px 60px rgba(12,27,51,.25);animation:rise .35s var(--ease);max-height:90vh;overflow:auto}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.head h2{font-family:Outfit,sans-serif;font-size:1.3rem;margin:0}
+.close{width:34px;height:34px;border:0;border-radius:50%;background:var(--fog);font-size:1.15rem}
+.hint{font-size:.86rem;color:var(--muted);line-height:1.5;margin:.35rem 0 0}
+.roleGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1.1rem}
+.role{border:1px solid var(--line);background:#fff;border-radius:15px;padding:1.1rem;text-align:left}
+.role:hover{border-color:var(--signal);background:rgba(59,130,246,.06)}
+.roleIcon{width:36px;height:36px;border-radius:10px;background:var(--ink);color:#93c5fd;display:grid;place-items:center;margin-bottom:.65rem}
+.roleIcon svg{width:18px;height:18px}
+.role b{display:block;font-size:.98rem;margin-bottom:.2rem}
+.role small{color:var(--muted);font-size:.78rem;line-height:1.4}
+.label{display:block;font-size:.78rem;font-weight:700;margin:1rem 0 .35rem}
+.input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:11px;outline:0;background:var(--paper)}
+.input:focus{border-color:var(--signal)}
+.badge{display:inline-block;background:rgba(59,130,246,.12);color:var(--navy);border-radius:8px;padding:4px 8px;font-size:.68rem;font-weight:800}
+.full{width:100%;margin-top:1rem}
+.langGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1rem;max-height:50vh;overflow:auto}
+.langBtn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px;text-align:left;font-weight:700;font-size:.85rem}
+.langBtn:hover,.langBtn.active{border-color:var(--signal);background:rgba(59,130,246,.08)}
+.langBtn small{display:block;font-weight:500;color:var(--muted);font-size:.72rem}
+.toast{position:fixed;bottom:1.3rem;left:50%;transform:translate(-50%,16px);opacity:0;background:var(--ink);color:#fff;padding:11px 16px;border-radius:999px;font-size:.82rem;z-index:120;transition:.25s;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:900px){
+  .nav{display:none}.heroContent{grid-template-columns:1fr;padding-bottom:5rem}
+  .heroVisual{justify-self:center;width:min(270px,78vw)}
+  .flow{grid-template-columns:1fr 1fr}.flowStep:nth-child(2n){border-right:0}
+  .featList,.trust{grid-template-columns:1fr}.band{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .flow{grid-template-columns:1fr}.flowStep{border-right:0;border-bottom:1px solid var(--line)}
+  .roleGrid{grid-template-columns:1fr}.actions .navApplyTop{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><div class="logoMark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>localfix</div>
+  <nav class="nav">
+    <button type="button" onclick="go('how')" data-i18n="navHow">How it works</button>
+    <button type="button" onclick="go('features')" data-i18n="navFeat">Features</button>
+    <button type="button" onclick="go('trust')" data-i18n="navTrust">Trust</button>
+    <button type="button" onclick="openModal('apply')" data-i18n="navApply">Apply for job</button>
+  </nav>
+  <div class="actions">
+    <button class="ghost navApplyTop" type="button" onclick="openModal('apply')" data-i18n="applyJob">Apply for job</button>
+    <button class="ghost" type="button" onclick="openModal('languages')">Translate</button>
+    <button class="ghost solid" type="button" onclick="openModal('roles')" data-i18n="login">Log in</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="heroGrid" aria-hidden="true"></div>
+  <div class="heroContent">
+    <div>
+      <p class="brandHero">local<span>fix</span></p>
+      <h1 data-i18n="heroTitle">Fix the appliance. Not the guesswork.</h1>
+      <p class="heroLead" data-i18n="heroLead">Book verified technicians for AC, fridge, washing machine, TV and more — track them live on the map.</p>
+      <div class="ctaRow">
+        <button class="btn btnPrimary" type="button" onclick="openModal('roles')" data-i18n="getStarted">Get started</button>
+        <button class="btn btnGhost" type="button" onclick="go('how')" data-i18n="seeJourney">See the journey</button>
+      </div>
+    </div>
+    <div class="heroVisual" aria-hidden="true">
+      <div class="orbit">
+        <div class="core">APPLIANCE<br>CARE<small>SERVICE HUB</small></div>
+        <!-- AC -->
+        <div class="tool t1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 16v2M12 16v2M17 16v2M6 11h2M11 11h2"/></svg></div>
+        <!-- Fridge -->
+        <div class="tool t2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="2" width="12" height="20" rx="1.5"/><path d="M6 10h12M9 6v2M9 13v2"/></svg></div>
+        <!-- Washing machine -->
+        <div class="tool t3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><circle cx="12" cy="13" r="2"/><circle cx="8" cy="5.5" r=".8" fill="currentColor"/><circle cx="11" cy="5.5" r=".8" fill="currentColor"/></svg></div>
+        <!-- TV -->
+        <div class="tool t4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      </div>
+    </div>
+  </div>
+  <div class="scrollCue" data-i18n="scroll">Scroll</div>
+</section>
+
+<main>
+  <section class="wrap" id="how">
+    <div class="sectionHead">
+      <div class="eyebrow" data-i18n="navHow">How it works</div>
+      <h2 data-i18n="howTitle">One journey from problem to proof</h2>
+      <p data-i18n="howLead">Customers and technicians share the same service flow.</p>
+    </div>
+    <div class="flow">
+      <div class="flowStep"><div class="flowNum">01</div><b data-i18n="s1">Describe</b><p data-i18n="s1d">Tell us what the appliance is doing.</p></div>
+      <div class="flowStep"><div class="flowNum">02</div><b data-i18n="s2">FixMatch</b><p data-i18n="s2d">Match a verified appliance technician.</p></div>
+      <div class="flowStep"><div class="flowNum">03</div><b data-i18n="s3">Book slot</b><p data-i18n="s3d">Pick a time slot that works for you.</p></div>
+      <div class="flowStep"><div class="flowNum">04</div><b data-i18n="s4">Track live</b><p data-i18n="s4d">Follow the technician on the map.</p></div>
+      <div class="flowStep"><div class="flowNum">05</div><b data-i18n="s5">Repair</b><p data-i18n="s5d">Proof, payment, warranty & history.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="features">
+    <div class="sectionHead">
+      <div class="eyebrow" data-i18n="navFeat">Features</div>
+      <h2 data-i18n="featTitle">Built for home appliances</h2>
+      <p data-i18n="featLead">Everything you need before you log in.</p>
+    </div>
+    <div class="featList">
+      <article class="feat">
+        <div class="featIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+        <h3 data-i18n="f1">AI FixMatch</h3><p data-i18n="f1d">Match by appliance type, skills, location and availability.</p>
+      </article>
+      <article class="feat">
+        <div class="featIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8 2 4.5 5 4.5 9.5c0 5.5 7.5 12.5 7.5 12.5s7.5-7 7.5-12.5C19.5 5 16 2 12 2z"/><circle cx="12" cy="9.5" r="2.2"/></svg></div>
+        <h3 data-i18n="f2">Live map track</h3><p data-i18n="f2d">See your technician moving toward you in the booked slot.</p>
+      </article>
+      <article class="feat">
+        <div class="featIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 1.5"/></svg></div>
+        <h3 data-i18n="f3">LocalFix Coins</h3><p data-i18n="f3d">Earn coins on eligible requests, services and reviews.</p>
+      </article>
+      <article class="feat">
+        <div class="featIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M4 12h16M4 17h8"/></svg></div>
+        <h3 data-i18n="f4">QuoteCompare</h3><p data-i18n="f4d">Parts and labour stay clear before you approve.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" id="trust">
+    <div class="trust">
+      <div class="sectionHead" style="margin:0">
+        <div class="eyebrow" data-i18n="navTrust">Trust</div>
+        <h2 data-i18n="trustTitle">Feel confident before you book</h2>
+        <p data-i18n="trustLead">Blue-chip trust signals — who is coming, what they will fix, and what you pay.</p>
+      </div>
+      <div class="trustPoints">
+        <div class="trustPoint"><div class="trustMark">✓</div><div><h3 data-i18n="t1">Verified technicians</h3><p data-i18n="t1d">ID-checked pros for electrical appliances.</p></div></div>
+        <div class="trustPoint"><div class="trustMark">₹</div><div><h3 data-i18n="t2">Transparent pricing</h3><p data-i18n="t2d">Parts and labour shown before approval.</p></div></div>
+        <div class="trustPoint"><div class="trustMark">◉</div><div><h3 data-i18n="t3">Live tracking</h3><p data-i18n="t3d">Map tracking inside your allotted time slot.</p></div></div>
+        <div class="trustPoint"><div class="trustMark">◆</div><div><h3 data-i18n="t4">Warranty & history</h3><p data-i18n="t4d">Keep warranty and past repairs in one place.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div>
+      <div class="eyebrow" data-i18n="navApply">Apply for job</div>
+      <h2 data-i18n="bandTitle">One platform. Two ways in.</h2>
+      <p data-i18n="bandLead">Customers book and track. Technicians receive jobs and navigate to the address.</p>
+    </div>
+    <div class="bandBtns">
+      <button class="btn btnPrimary" type="button" onclick="openModal('roles')" data-i18n="loginLF">Log in to LocalFix</button>
+      <button class="btn btnGhost" type="button" onclick="openModal('apply')" data-i18n="applyJob">Apply for job</button>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span data-i18n="footer">© 2026 localfix · Electrical appliance services</span>
+  <span data-i18n="footer2">Trusted · Tracked · Demo UI</span>
+</footer>
+
+<!-- Roles -->
+<div class="modal" id="roles"><div class="box">
+  <div class="head"><div><h2 data-i18n="welcome">Welcome to LocalFix</h2><p class="hint" data-i18n="welcomeHint">Choose how you want to use the platform.</p></div>
+  <button class="close" type="button" onclick="closeModals()">×</button></div>
+  <div class="roleGrid">
+    <button class="role" type="button" onclick="openCustomer()">
+      <div class="roleIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg></div>
+      <b data-i18n="customer">Customer</b><small data-i18n="customerHint">Book appliance services, track technicians on the map, pay securely.</small>
+    </button>
+    <button class="role" type="button" onclick="openTechnician()">
+      <div class="roleIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <b data-i18n="technician">Technician</b><small data-i18n="techHint">Use your LocalFix ID to receive jobs and see customer locations.</small>
+    </button>
+  </div>
+</div></div>
+
+<div class="modal" id="customerLogin"><div class="box">
+  <div class="head"><div><h2 data-i18n="custLogin">Customer login</h2><span class="badge" data-i18n="mobileOtp">MOBILE + OTP</span></div>
+  <button class="close" type="button" onclick="closeModals()">×</button></div>
+  <label class="label">Email</label>
+  <input id="cemail" class="input" type="email" placeholder="you@example.com">
+  <label class="label">Password</label>
+  <input id="cpassword" class="input" type="password" placeholder="At least 8 characters">
+  <button class="btn btnPrimary full" type="button" onclick="customerLogin()">Log in securely</button>
+  <p id="cmsg" class="hint"></p>
+</div></div>
+
+<div class="modal" id="technicianLogin"><div class="box">
+  <div class="head"><div><h2 data-i18n="techLogin">Technician login</h2><span class="badge" data-i18n="companyAccess">COMPANY ACCESS</span></div>
+  <button class="close" type="button" onclick="closeModals()">×</button></div>
+  <label class="label">Email</label>
+  <input id="temail" class="input" type="email" placeholder="technician@example.com">
+  <label class="label">Password</label>
+  <input id="tpassword" class="input" type="password" placeholder="At least 8 characters">
+  <button class="btn btnPrimary full" type="button" onclick="technicianLogin()">Log in securely</button>
+  <p id="tmsg" class="hint"></p>
+</div></div>
+
+<div class="modal" id="apply"><div class="box">
+  <div class="head"><div><h2 data-i18n="applyTitle">Apply for a technician job</h2><p class="hint" data-i18n="applyHint">Share your details. After admin selection you will see a message on the customer page.</p></div>
+  <button class="close" type="button" onclick="closeModals()">×</button></div>
+  <label class="label" data-i18n="name">Full name</label>
+  <input id="appName" class="input" placeholder="Your name">
+  <label class="label" data-i18n="mobile">Mobile number</label>
+  <input id="appMobile" class="input" type="tel" placeholder="+91 98765 43210">
+  <label class="label" data-i18n="age">Age</label>
+  <input id="appAge" class="input" type="number" min="18" max="70" placeholder="28">
+  <label class="label" data-i18n="experience">Experience (years)</label>
+  <input id="appExp" class="input" type="number" min="0" max="40" placeholder="5">
+  <button class="btn btnPrimary full" type="button" onclick="submitApply()" data-i18n="submitApp">Submit application</button>
+  <p id="appMsg" class="hint"></p>
+</div></div>
+
+<div class="modal" id="languages"><div class="box">
+  <div class="head"><div><h2>Translate LocalFix</h2><p class="hint">Choose a language to translate the full app.</p></div>
+  <button class="close" type="button" onclick="closeModals()">×</button></div>
+  <div id="google_translate_element" style="margin-top:1rem"></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function go(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'})}
+function openModal(id){closeModals();document.getElementById(id).classList.add('show')}
+function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('show'))}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModals()}))
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('on'),2400)}
+function openCustomer(){openModal('customerLogin')}
+function openTechnician(){openModal('technicianLogin')}
+async function customerLogin(){
+  const email=document.getElementById('cemail').value.trim();
+  const password=document.getElementById('cpassword').value;
+  const msg=document.getElementById('cmsg');
+  if(!email||!password){msg.textContent='Enter your email and password.';return}
+  msg.textContent='Signing in…';
+  try{
+    const user=await LF_API.login(email,password);
+    const parts=user.name.trim().split(/\s+/);
+    localStorage.setItem('lf_customer_profile',JSON.stringify({first:parts.shift()||user.name,last:parts.join(' ')||'Customer'}));
+    location.href='customer.html';
+  }catch(error){msg.textContent=error.message}
+}
+async function technicianLogin(){
+  const email=document.getElementById('temail').value.trim();
+  const password=document.getElementById('tpassword').value;
+  const msg=document.getElementById('tmsg');
+  if(!email||!password){msg.textContent='Enter your email and password.';return}
+  msg.textContent='Signing in…';
+  try{
+    const user=await LF_API.login(email,password);
+    if(user.role!=='technician'){LF_API.clearSession();throw new Error('This account is not a technician account.')}
+    location.href='technician.html';
+  }catch(error){msg.textContent=error.message}
+}
+function submitApply(){
+  const name=document.getElementById('appName').value.trim();
+  const mobile=document.getElementById('appMobile').value.trim();
+  const age=document.getElementById('appAge').value.trim();
+  const exp=document.getElementById('appExp').value.trim();
+  const msg=document.getElementById('appMsg');
+  if(!name||!mobile||!age||!exp){msg.textContent=LF.t('appNeed');return}
+  const app={name,mobile,age,experience:exp,status:'pending',at:Date.now()};
+  localStorage.setItem('lf_job_application',JSON.stringify(app));
+  /* Demo: admin auto-selects after short delay so customer page shows message */
+  setTimeout(()=>{
+    app.status='selected';
+    app.message='selected_by_admin';
+    localStorage.setItem('lf_job_application',JSON.stringify(app));
+  },2500);
+  msg.textContent=LF.t('appOk');
+  toast(LF.t('appOk'));
+}
+function buildLangGrid(){
+  /* Google Translate provides the compact whole-page language selector. */
+}
+function pickLang(code){
+  LF.setLang(code);LF.apply();buildLangGrid();
+  toast(LF.t('langSet')+' '+LF.langNative());
+  closeModals();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  buildLangGrid();
+  /* header contrast */
+  const topEl=document.querySelector('.top');
+  const hero=document.querySelector('.hero');
+  const io=new IntersectionObserver(([e])=>{
+    const on=e.isIntersecting;
+    topEl.querySelector('.logo').style.color=on?'#fff':'var(--ink)';
+    topEl.querySelectorAll('.nav button').forEach(b=>b.style.color=on?'rgba(255,255,255,.75)':'var(--muted)');
+    topEl.querySelectorAll('.ghost:not(.solid)').forEach(b=>{
+      b.style.borderColor=on?'rgba(255,255,255,.3)':'var(--line)';
+      b.style.background=on?'rgba(12,27,51,.28)':'#fff';
+      b.style.color=on?'#fff':'var(--ink)';
+    });
+  },{threshold:.35});
+  io.observe(hero);
+});
+</script>
+<script>
+function googleTranslateElementInit(){
+  new google.translate.TranslateElement({
+    pageLanguage:'en',
+    includedLanguages:'hi,te,ta,kn,ml,mr,bn,gu,pa',
+    autoDisplay:false
+  },'google_translate_element');
+}
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>
