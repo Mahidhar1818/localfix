@@ -339,7 +339,7 @@ async function customerLogin(){
   if(!email||!password){msg.textContent='Enter your email and password.';return}
   msg.textContent='Signing in…';
   try{
-    const user=await LF_API.login(email,password);
+    const user=await LF_API.signIn(email,password,'customer');
     const parts=user.name.trim().split(/\s+/);
     localStorage.setItem('lf_customer_profile',JSON.stringify({first:parts.shift()||user.name,last:parts.join(' ')||'Customer'}));
     location.href='customer.html';
@@ -352,7 +352,7 @@ async function technicianLogin(){
   if(!email||!password){msg.textContent='Enter your email and password.';return}
   msg.textContent='Signing in…';
   try{
-    const user=await LF_API.login(email,password);
+    const user=await LF_API.signIn(email,password,'technician');
     if(user.role!=='technician'){LF_API.clearSession();throw new Error('This account is not a technician account.')}
     location.href='technician.html';
   }catch(error){msg.textContent=error.message}

@@ -1,3 +1,6 @@
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 require('dotenv').config();
 const path = require('path');
 const http = require('http');
@@ -511,10 +514,17 @@ async function start() {
     console.warn('⚠️  MONGODB_URI is not set. Database routes will return 503.');
   } else {
     try {
-      await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
+      await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000,
+        dbName: 'localfix'
+      });
       console.log('✅ MongoDB connected');
     } catch (error) {
-      console.error('❌ MongoDB connection failed:', error.message);
+      if (error.code === 8000 || /bad auth/i.test(error.message)) {
+        console.error('❌ MongoDB authentication failed. The username or password in MONGODB_URI is wrong. Reset the database user password in Atlas, update .env, and restart.');
+      } else {
+        console.error('❌ MongoDB connection failed:', error.message);
+      }
     }
   }
 
