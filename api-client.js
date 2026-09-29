@@ -89,6 +89,37 @@ const LF_API = (() => {
     },
     async technicians(category) {
       return request(`/api/technicians?category=${encodeURIComponent(category)}`);
+    },
+    // Location & OTP helpers
+    async updateLocation(lat, lng, address) {
+      return request('/api/location/update', {
+        method: 'POST',
+        body: JSON.stringify({ lat, lng, address })
+      });
+    },
+    async getUserLocation(userId) {
+      return request(`/api/location/${userId}`);
+    },
+    async getJobOtp(jobId) {
+      return request(`/api/jobs/${jobId}/otp`);
+    },
+    async verifyJobOtp(jobId, otp) {
+      return request(`/api/jobs/${jobId}/verify-otp`, {
+        method: 'POST',
+        body: JSON.stringify({ otp })
+      });
+    },
+    async sendMobileOtp(phone) {
+      return request('/api/otp/mobile/send', { method: 'POST', body: JSON.stringify({ phone }) });
+    },
+    async verifyMobileOtp(phone, code) {
+      return request('/api/otp/mobile/verify', { method: 'POST', body: JSON.stringify({ phone, code }) });
+    },
+    async sendEmailOtp(email) {
+      return request('/api/otp/email/send', { method: 'POST', body: JSON.stringify({ email }) });
+    },
+    async verifyEmailOtp(email, code) {
+      return request('/api/otp/email/verify', { method: 'POST', body: JSON.stringify({ email, code }) });
     }
   };
 })();

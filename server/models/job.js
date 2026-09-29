@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const jobSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   technicianId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -21,8 +22,15 @@ const jobSchema = new mongoose.Schema({
     address: { type: String, maxlength: 300 }
   },
   scheduledAt: Date,
-  completedAt: Date
+  completedAt: Date,
+  
+  // NEW: OTP to complete the job
+  bookingOtp: { type: String, select: false },
+  otpVerified: { type: Boolean, default: false },
+  otpVerifiedAt: Date,
+  otpAttempts: { type: Number, default: 0 }
 }, { timestamps: true });
+
 jobSchema.virtual('totalCost').get(function totalCost() {
   return this.visitCost + this.partCost + this.laborCost;
 });
@@ -30,4 +38,5 @@ jobSchema.set('toJSON', { virtuals: true });
 jobSchema.index({ customerId: 1, createdAt: -1 });
 jobSchema.index({ technicianId: 1, status: 1, createdAt: -1 });
 jobSchema.index({ category: 1, status: 1 });
+
 module.exports = mongoose.model('Job', jobSchema);

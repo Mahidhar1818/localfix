@@ -20,6 +20,7 @@ const Review = require('./server/models/review');
 const Message = require('./server/models/message');
 const { requireAuth, requireRole, verifySocketToken } = require('./server/middleware/auth');
 const { diagnoseWithGemini, CATEGORIES } = require('./server/services/gemini');
+const { sendSmsOtp, sendEmailOtp, verifyOtp, normalizePhone } = require('./server/services/twilio');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -99,6 +100,10 @@ function cleanMessage(message) {
   };
 }
 
+function generateBookingOtp() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
 // ---------- HEALTH ----------
 app.get('/api/health', (req, res) => {
   res.json({
@@ -106,6 +111,8 @@ app.get('/api/health', (req, res) => {
     service: 'localfix-api',
     database: isDatabaseReady() ? 'connected' : 'not-configured',
     gemini: Boolean(process.env.GEMINI_API_KEY),
+    twilio: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    smtp: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER),
     timestamp: new Date().toISOString()
   });
 });
@@ -160,6 +167,111 @@ app.get('/api/auth/me', requireDatabase, requireAuth, (req, res) => {
   res.json({ user: publicUser(req.user) });
 });
 
+// ---------- OTP (Twilio SMS + SMTP Email) ----------
+app.post('/api/otp/mobile/send', requireDatabase, async (req, res, next) => {
+  try {
+    const { phone, purpose = 'verify' } = req.body;
+    if (!phone) return res.status(400).json({ error: 'phone is required' });
+    const result = await sendSmsOtp(phone, purpose);
+    res.json({ ok: true, channel: 'sms', identifier: result.identifier, dev: Boolean(result.dev) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/otp/mobile/verify', requireDatabase, async (req, res, next) => {
+  try {
+    const { phone, code } = req.body;
+    if (!phone || !code) return res.status(400).json({ error: 'phone and code are required' });
+    const result = await verifyOtp({ identifier: phone, channel: 'sms', code });
+    if (!result.ok) return res.status(400).json({ error: result.reason });
+
+    await User.updateOne({ phone: phone.trim() }, { phoneVerified: true });
+    res.json({ ok: true, phone: result.identifier });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/otp/email/send', requireDatabase, async (req, res, next) => {
+  try {
+    const { email, purpose = 'verify' } = req.body;
+    if (!email) return res.status(400).json({ error: 'email is required' });
+    const result = await sendEmailOtp(email, purpose);
+    res.json({ ok: true, channel: 'email', identifier: result.identifier, dev: Boolean(result.dev) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/otp/email/verify', requireDatabase, async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ error: 'email and code are required' });
+    const result = await verifyOtp({ identifier: email, code, channel: 'email' });
+    if (!result.ok) return res.status(400).json({ error: result.reason });
+
+    await User.updateOne({ email: email.trim().toLowerCase() }, { emailVerified: true });
+    res.json({ ok: true, email: result.identifier });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---------- LIVE LOCATION ----------
+app.post('/api/location/update', requireDatabase, requireAuth, async (req, res, next) => {
+  try {
+    const { lat, lng, address } = req.body;
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+      return res.status(400).json({ error: 'lat and lng are required numbers' });
+    }
+
+    req.user.liveLocation = {
+      lat: Number(lat),
+      lng: Number(lng),
+      address: address ? String(address).slice(0, 300) : req.user.liveLocation?.address,
+      updatedAt: new Date()
+    };
+    await req.user.save();
+
+    const jobs = await Job.find({
+      $or: [{ customerId: req.user._id }, { technicianId: req.user._id }]
+    }).select('_id');
+
+    const payload = {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      name: req.user.name,
+      lat: req.user.liveLocation.lat,
+      lng: req.user.liveLocation.lng,
+      address: req.user.liveLocation.address,
+      updatedAt: req.user.liveLocation.updatedAt
+    };
+
+    jobs.forEach(job => io.to(`job:${job._id}`).emit('location:update', payload));
+    res.json({ ok: true, liveLocation: req.user.liveLocation });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/location/:userId', requireDatabase, requireAuth, async (req, res, next) => {
+  try {
+    const target = await User.findById(req.params.userId).select('name role liveLocation location');
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      user: {
+        id: target._id,
+        name: target.name,
+        role: target.role,
+        liveLocation: target.liveLocation || target.location || null
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ---------- AI DIAGNOSE (FixMatch) ----------
 app.post('/api/ai/diagnose', requireDatabase, requireAuth, requireRole('customer'), async (req, res, next) => {
   try {
@@ -193,7 +305,7 @@ app.get('/api/technicians', requireDatabase, requireAuth, async (req, res, next)
     };
 
     const technicians = await User.find(query)
-      .select('name skills rating completedJobs isVerified location')
+      .select('name skills rating completedJobs isVerified location liveLocation')
       .sort({ rating: -1, completedJobs: -1 })
       .limit(50);
 
@@ -216,6 +328,8 @@ app.post('/api/jobs', requireDatabase, requireAuth, requireRole('customer'), asy
       if (!technician) return res.status(400).json({ error: 'Selected technician was not found' });
     }
 
+    const bookingOtp = generateBookingOtp();
+
     const job = await Job.create({
       customerId: req.user._id,
       technicianId,
@@ -223,10 +337,14 @@ app.post('/api/jobs', requireDatabase, requireAuth, requireRole('customer'), asy
       problemDescription,
       scheduledAt,
       customerLocation,
-      visitCost: Number.isFinite(Number(visitCost)) ? Number(visitCost) : 299
+      visitCost: Number.isFinite(Number(visitCost)) ? Number(visitCost) : 299,
+      bookingOtp
     });
 
-    res.status(201).json({ job });
+    const jobObj = job.toObject();
+    delete jobObj.bookingOtp;
+
+    res.status(201).json({ job: jobObj, bookingOtp });
   } catch (error) {
     next(error);
   }
@@ -238,8 +356,8 @@ app.get('/api/jobs', requireDatabase, requireAuth, async (req, res, next) => {
     if (req.query.status) filter.status = req.query.status;
 
     const jobs = await Job.find(filter)
-      .populate('customerId', 'name email')
-      .populate('technicianId', 'name skills rating')
+      .populate('customerId', 'name email phone liveLocation location')
+      .populate('technicianId', 'name skills rating liveLocation location')
       .sort({ createdAt: -1 })
       .limit(100);
 
@@ -252,8 +370,8 @@ app.get('/api/jobs', requireDatabase, requireAuth, async (req, res, next) => {
 app.get('/api/jobs/:id', requireDatabase, requireAuth, async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('customerId', 'name')
-      .populate('technicianId', 'name skills rating');
+      .populate('customerId', 'name phone liveLocation location')
+      .populate('technicianId', 'name skills rating liveLocation location');
 
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
@@ -261,7 +379,54 @@ app.get('/api/jobs/:id', requireDatabase, requireAuth, async (req, res, next) =>
       .some(id => id && id.toString() === req.user._id.toString());
     if (!ownsJob) return res.status(403).json({ error: 'You cannot access this job' });
 
-    res.json({ job });
+    const jobObj = job.toObject();
+    delete jobObj.bookingOtp;
+    res.json({ job: jobObj });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Customer fetches their booking OTP
+app.get('/api/jobs/:id/otp', requireDatabase, requireAuth, requireRole('customer'), async (req, res, next) => {
+  try {
+    const job = await Job.findOne({ _id: req.params.id, customerId: req.user._id }).select('+bookingOtp');
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    res.json({ bookingOtp: job.bookingOtp, otpVerified: job.otpVerified });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Technician submits OTP → job completes
+app.post('/api/jobs/:id/verify-otp', requireDatabase, requireAuth, requireRole('technician'), async (req, res, next) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) return res.status(400).json({ error: 'otp is required' });
+
+    const job = await Job.findOne({ _id: req.params.id, technicianId: req.user._id }).select('+bookingOtp');
+    if (!job) return res.status(404).json({ error: 'Assigned job not found' });
+    if (job.otpVerified) return res.status(409).json({ error: 'OTP already verified for this job' });
+    if ((job.otpAttempts || 0) >= 5) return res.status(429).json({ error: 'Too many OTP attempts. Contact support.' });
+
+    if (String(otp).trim() !== String(job.bookingOtp)) {
+      job.otpAttempts = (job.otpAttempts || 0) + 1;
+      await job.save();
+      return res.status(400).json({ error: 'Incorrect OTP' });
+    }
+
+    job.otpVerified = true;
+    job.otpVerifiedAt = new Date();
+    job.status = 'Completed';
+    job.completedAt = new Date();
+    await job.save();
+
+    await User.findByIdAndUpdate(req.user._id, { $inc: { completedJobs: 1 } });
+    io.to(`job:${job._id}`).emit('job:completed', { jobId: job._id, at: job.completedAt });
+
+    const jobObj = job.toObject();
+    delete jobObj.bookingOtp;
+    res.json({ ok: true, job: jobObj });
   } catch (error) {
     next(error);
   }
@@ -275,6 +440,13 @@ app.patch('/api/jobs/:id/status', requireDatabase, requireAuth, requireRole('tec
 
     const job = await Job.findOne({ _id: req.params.id, technicianId: req.user._id });
     if (!job) return res.status(404).json({ error: 'Assigned job not found' });
+
+    // Force OTP flow: cannot complete without OTP verification
+    if (status === 'Completed' && !job.otpVerified) {
+      return res.status(400).json({
+        error: 'Ask the customer for their 6-digit completion OTP to finish this job.'
+      });
+    }
 
     const order = ['Pending', 'Accepted', 'In Progress', 'Completed'];
     if (order.indexOf(status) < order.indexOf(job.status)) {
@@ -293,7 +465,6 @@ app.patch('/api/jobs/:id/status', requireDatabase, requireAuth, requireRole('tec
     if (status === 'Completed') {
       await User.findByIdAndUpdate(req.user._id, { $inc: { completedJobs: 1 } });
     }
-
     res.json({ job });
   } catch (error) {
     next(error);
@@ -444,12 +615,12 @@ app.post('/api/jobs/:id/messages', requireDatabase, requireAuth, async (req, res
   }
 });
 
-// ---------- SOCKET.IO (Real-time chat) ----------
+// ---------- SOCKET.IO (Real-time chat + live location) ----------
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
-    const user = verifySocketToken(token);
-    socket.user = user;
+    const user = verifySocketToken(token); // returns { sub, role }
+    socket.user = { id: user.sub, role: user.role };
     next();
   } catch (error) {
     next(new Error('Unauthorized socket connection'));
@@ -457,6 +628,7 @@ io.use((socket, next) => {
 });
 
 io.on('connection', socket => {
+  // Chat room join/leave
   socket.on('job:join', jobId => {
     if (jobId) socket.join(`job:${jobId}`);
   });
@@ -465,6 +637,44 @@ io.on('connection', socket => {
     if (jobId) socket.leave(`job:${jobId}`);
   });
 
+  // Live location relay (client emits { lat, lng, address? })
+  socket.on('location:update', async payload => {
+    try {
+      const { lat, lng, address } = payload || {};
+      if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return;
+
+      const user = await User.findById(socket.user.id);
+      if (!user) return;
+
+      user.liveLocation = {
+        lat: Number(lat),
+        lng: Number(lng),
+        address: address ? String(address).slice(0, 300) : user.liveLocation?.address,
+        updatedAt: new Date()
+      };
+      await user.save();
+
+      const jobs = await Job.find({
+        $or: [{ customerId: user._id }, { technicianId: user._id }]
+      }).select('_id');
+
+      const out = {
+        userId: user._id.toString(),
+        role: user.role,
+        name: user.name,
+        lat: user.liveLocation.lat,
+        lng: user.liveLocation.lng,
+        address: user.liveLocation.address,
+        updatedAt: user.liveLocation.updatedAt
+      };
+
+      jobs.forEach(job => io.to(`job:${job._id}`).emit('location:update', out));
+    } catch (err) {
+      socket.emit('location:error', { error: 'Could not update location' });
+    }
+  });
+
+  // Chat message via socket
   socket.on('message:send', async payload => {
     try {
       const jobId = payload?.jobId;
@@ -493,7 +703,7 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {});
 });
 
-// ---------- STATIC FRONTEND (serves index.html etc.) ----------
+// ---------- STATIC FRONTEND ----------
 app.use(express.static(publicDir, { extensions: ['html'] }));
 
 app.get('*', (req, res, next) => {
@@ -521,7 +731,7 @@ async function start() {
       console.log('✅ MongoDB connected');
     } catch (error) {
       if (error.code === 8000 || /bad auth/i.test(error.message)) {
-        console.error('❌ MongoDB authentication failed. The username or password in MONGODB_URI is wrong. Reset the database user password in Atlas, update .env, and restart.');
+        console.error('❌ MongoDB authentication failed. Check MONGODB_URI credentials in Atlas.');
       } else {
         console.error('❌ MongoDB connection failed:', error.message);
       }
@@ -530,6 +740,7 @@ async function start() {
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 LocalFix running on http://localhost:${PORT}`);
+    console.log(`   Socket.IO ready. Client script auto-served at /socket.io/socket.io.js`);
   });
 }
 
